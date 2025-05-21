@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mental Health Advisor</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="card">
+        <div class="header">
+          <h1>Mental Health Advisor</h1>
+          <p>Share your thoughts, and we'll provide personalized advice.</p>
+        </div>
+        <div class="input-section">
+          <textarea
+            id="userInput"
+            placeholder="How are you feeling today?"
+          ></textarea>
+          <button id="getAdviceButton">Get Advice</button>
+        </div>
+      </div>
+      <div id="responseContainer" class="response hidden">
+        <button id="closeResponseButton" class="close-btn">&times;</button>
+        <p id="responseText"></p>
+      </div>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>

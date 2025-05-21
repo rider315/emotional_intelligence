@@ -1,0 +1,23 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "main": "script.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server-llm-calling.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@huggingface/inference": "^3.5.2",
+    "@sanity/client": "^6.22.2",
+    "axios": "^1.8.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "groq-sdk": "^0.7.0",
+    "react": "^19.0.0"
+  },
+  "description": ""
+}

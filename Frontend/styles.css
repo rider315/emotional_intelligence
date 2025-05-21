@@ -1,0 +1,119 @@
+/* General reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #6ab7ff, #c4e8ff);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+}
+
+.card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    text-align: center;
+    overflow: hidden;
+}
+
+.header h1 {
+    font-size: 1.8rem;
+    color: #2c3e50;
+}
+
+.header p {
+    color: #7f8c8d;
+    margin: 10px 0 20px;
+    font-size: 1rem;
+}
+
+.input-section textarea {
+    width: 100%;
+    height: 100px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 1rem;
+    resize: none;
+    margin-bottom: 15px;
+    outline: none;
+}
+
+.input-section button {
+    width: 100%;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 10px;
+    font-size: 1rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.input-section button:hover {
+    background-color: #2980b9;
+}
+
+.response {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ffffff;
+    color: #34495e;
+    border-radius: 15px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    padding: 15px 20px;
+    max-width: 120%;
+    width: 600px;
+    overflow-y: auto;
+    max-height: 350px;
+    font-size: 1rem;
+    text-align: justify;
+}
+
+ul {
+    list-style-type: none; 
+    padding: 0; 
+    margin: 0; 
+}
+
+ul li {
+    padding: 5px 0; 
+}
+
+/* Close button */
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    color: #e74c3c;
+    cursor: pointer;
+    outline: none;
+    transition: color 0.3s;
+}
+
+.close-btn:hover {
+    color: #c0392b;
+}
+
+.hidden {
+    display: none;
+}
