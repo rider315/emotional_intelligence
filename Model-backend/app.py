@@ -129,12 +129,21 @@ import traceback
 app = Flask(__name__, static_folder="../Frontend", static_url_path="")
 CORS(app)  # Enable CORS for all routes
 
+# Get the directory of the current script (app.py)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Define file paths relative to the script's directory
+MODEL_ARCHITECTURE_PATH = os.path.join(BASE_DIR, "model_architecture.json")
+MODEL_WEIGHTS_PATH = os.path.join(BASE_DIR, "model_weights.weights.h5")
+TOKENIZER_PATH = os.path.join(BASE_DIR, "tokenizer.pkl")
+LABEL_ENCODER_PATH = os.path.join(BASE_DIR, "label_encoder.pkl")
+
 # Check if required files exist
 required_files = {
-    "Model-backend/model_architecture.json": "Model architecture",
-    "Model-backend/model_weights.weights.h5": "Model weights",
-    "Model-backend/tokenizer.pkl": "Tokenizer",
-    "Model-backend/label_encoder.pkl": "Label encoder"
+    MODEL_ARCHITECTURE_PATH: "Model architecture",
+    MODEL_WEIGHTS_PATH: "Model weights",
+    TOKENIZER_PATH: "Tokenizer",
+    LABEL_ENCODER_PATH: "Label encoder"
 }
 
 for file, desc in required_files.items():
@@ -144,7 +153,7 @@ for file, desc in required_files.items():
 
 # Load the TensorFlow model architecture
 try:
-    with open("Model-backend/model_architecture.json", "r") as json_file:
+    with open(MODEL_ARCHITECTURE_PATH, "r") as json_file:
         model = model_from_json(json_file.read())
     print("Model architecture loaded successfully.")
 except Exception as e:
@@ -153,7 +162,7 @@ except Exception as e:
 
 # Load the model weights
 try:
-    model.load_weights("Model-backend/model_weights.weights.h5")
+    model.load_weights(MODEL_WEIGHTS_PATH)
     print("Model weights loaded successfully.")
 except Exception as e:
     print(f"Error loading model weights: {str(e)}")
@@ -161,10 +170,10 @@ except Exception as e:
 
 # Load the tokenizer and label encoder
 try:
-    with open("Model-backend/tokenizer.pkl", "rb") as file:
+    with open(TOKENIZER_PATH, "rb") as file:
         tokenizer = pickle.load(file)
     print("Tokenizer loaded successfully.")
-    with open("Model-backend/label_encoder.pkl", "rb") as file:
+    with open(LABEL_ENCODER_PATH, "rb") as file:
         label_encoder = pickle.load(file)
     print("Label encoder loaded successfully.")
 except Exception as e:
@@ -235,6 +244,7 @@ def predict():
 if __name__ == "__main__":
     try:
         port = int(os.getenv("PORT", 3000))
+        print(f"Starting Flask server on port {port}...")
         app.run(host="0.0.0.0", port=port)
     except Exception as e:
         print(f"Error starting Flask server: {str(e)}")
