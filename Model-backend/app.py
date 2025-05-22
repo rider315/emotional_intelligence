@@ -116,7 +116,6 @@
 #         print(f"Error starting Flask server: {str(e)}")
 #         exit(1)
 
-
 from tensorflow.keras.models import model_from_json
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import pickle
@@ -132,10 +131,10 @@ CORS(app)  # Enable CORS for all routes
 
 # Check if required files exist
 required_files = {
-    "model_architecture.json": "Model architecture",
-    "model_weights.weights.h5": "Model weights",
-    "tokenizer.pkl": "Tokenizer",
-    "label_encoder.pkl": "Label encoder"
+    "Model-backend/model_architecture.json": "Model architecture",
+    "Model-backend/model_weights.weights.h5": "Model weights",
+    "Model-backend/tokenizer.pkl": "Tokenizer",
+    "Model-backend/label_encoder.pkl": "Label encoder"
 }
 
 for file, desc in required_files.items():
@@ -145,7 +144,7 @@ for file, desc in required_files.items():
 
 # Load the TensorFlow model architecture
 try:
-    with open("model_architecture.json", "r") as json_file:
+    with open("Model-backend/model_architecture.json", "r") as json_file:
         model = model_from_json(json_file.read())
     print("Model architecture loaded successfully.")
 except Exception as e:
@@ -154,7 +153,7 @@ except Exception as e:
 
 # Load the model weights
 try:
-    model.load_weights("model_weights.weights.h5")
+    model.load_weights("Model-backend/model_weights.weights.h5")
     print("Model weights loaded successfully.")
 except Exception as e:
     print(f"Error loading model weights: {str(e)}")
@@ -162,10 +161,10 @@ except Exception as e:
 
 # Load the tokenizer and label encoder
 try:
-    with open("tokenizer.pkl", "rb") as file:
+    with open("Model-backend/tokenizer.pkl", "rb") as file:
         tokenizer = pickle.load(file)
     print("Tokenizer loaded successfully.")
-    with open("label_encoder.pkl", "rb") as file:
+    with open("Model-backend/label_encoder.pkl", "rb") as file:
         label_encoder = pickle.load(file)
     print("Label encoder loaded successfully.")
 except Exception as e:
