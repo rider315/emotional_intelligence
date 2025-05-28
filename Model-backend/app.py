@@ -50,8 +50,8 @@ except Exception as e:
     print(f"Error loading model architecture: {str(e)}")
     exit(1)
 
-# Inspect the weights file and manually set weights
-print("Inspecting weights file and manually setting weights...")
+# Step 1: Inspect the weights file
+print("Step 1: Inspecting weights file...")
 try:
     with h5py.File(MODEL_WEIGHTS_PATH, "r") as f:
         def inspect_hdf5_group(group, prefix=""):
@@ -63,8 +63,17 @@ try:
                     inspect_hdf5_group(item, prefix=f"{prefix}{key}/")
         print("Weights file top-level keys:", list(f.keys()))
         inspect_hdf5_group(f)
+except Exception as e:
+    print(f"Error inspecting weights file: {str(e)}")
+    exit(1)
 
+# Step 2: Extract and set weights in a separate with block
+print("Step 2: Extracting and setting weights...")
+try:
+    with h5py.File(MODEL_WEIGHTS_PATH, "r") as f:
         # Verify the structure before accessing weights
+        print("Confirming file structure before extraction...")
+        print("Weights file top-level keys:", list(f.keys()))
         if 'layers' not in f:
             print("Error: 'layers' group not found in weights file.")
             exit(1)
@@ -78,7 +87,7 @@ try:
             print("Error: '0' dataset not found in weights file.")
             exit(1)
 
-        # Extract and set the weights manually
+        # Extract and set the weights
         print("Extracting embedding weights...")
         embedding_weights = np.array(f['layers']['embedding']['vars']['0'])
         print(f"Extracted embedding weights shape: {embedding_weights.shape}")
@@ -99,7 +108,7 @@ try:
         model.layers[3].set_weights([dense_1_weights, dense_1_bias])
         print("Set dense_1 layer weights on the model.")
 except Exception as e:
-    print(f"Error inspecting or setting weights: {str(e)}")
+    print(f"Error extracting or setting weights: {str(e)}")
     exit(1)
 
 # Load the tokenizer and label encoder
