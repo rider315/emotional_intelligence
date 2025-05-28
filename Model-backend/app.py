@@ -116,6 +116,10 @@
 #         print(f"Error starting Flask server: {str(e)}")
 #         exit(1)
 
+import time
+time.sleep(5)  # Add a 5-second delay to help Render detect the port
+
+import tensorflow as tf
 from tensorflow.keras.models import model_from_json
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import pickle
@@ -124,6 +128,10 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
 import traceback
+import h5py
+
+# Print TensorFlow version
+print(f"TensorFlow version: {tf.__version__}")
 
 # Initialize Flask app
 app = Flask(__name__, static_folder="../Frontend", static_url_path="")
@@ -156,8 +164,24 @@ try:
     with open(MODEL_ARCHITECTURE_PATH, "r") as json_file:
         model = model_from_json(json_file.read())
     print("Model architecture loaded successfully.")
+    model.summary()  # Print model summary
+    embedding_layer = model.layers[0]
+    print(f"Expected embedding weights shape: {(embedding_layer.input_dim, embedding_layer.output_dim)}")
 except Exception as e:
     print(f"Error loading model architecture: {str(e)}")
+    exit(1)
+
+# Inspect the weights file
+print("Inspecting weights file...")
+try:
+    with h5py.File(MODEL_WEIGHTS_PATH, "r") as f:
+        print("Weights file keys:", list(f.keys()))
+        for layer in f:
+            print(f"Layer: {layer}")
+            for weight in f[layer]:
+                print(f"  Weight: {weight}, Shape: {f[layer][weight].shape}")
+except Exception as e:
+    print(f"Error inspecting weights file: {str(e)}")
     exit(1)
 
 # Load the model weights
