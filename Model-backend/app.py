@@ -8,6 +8,7 @@ from flask_cors import CORS
 import os
 import traceback
 import h5py
+import shutil
 
 # Print TensorFlow version
 print(f"TensorFlow version: {tf.__version__}")
@@ -22,6 +23,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Define file paths relative to the script's directory
 MODEL_ARCHITECTURE_PATH = os.path.join(BASE_DIR, "model_architecture.json")
 MODEL_WEIGHTS_PATH = os.path.join(BASE_DIR, "model_weights.weights.h5")
+MODEL_WEIGHTS_RENAMED_PATH = os.path.join(BASE_DIR, "model_weights_renamed.weights.h5")
 TOKENIZER_PATH = os.path.join(BASE_DIR, "tokenizer.pkl")
 LABEL_ENCODER_PATH = os.path.join(BASE_DIR, "label_encoder.pkl")
 
@@ -50,22 +52,21 @@ except Exception as e:
     print(f"Error loading model architecture: {str(e)}")
     exit(1)
 
-# Open the weights file and keep it open for inspection and loading
+# Inspect the weights file
 print("Inspecting weights file...")
 try:
-    f = h5py.File(MODEL_WEIGHTS_PATH, "r")
-    def inspect_hdf5_group(group, prefix=""):
-        for key in group.keys():
-            item = group[key]
-            if isinstance(item, h5py.Dataset):
-                print(f"{prefix}{key}: Shape: {item.shape}")
-            elif isinstance(item, h5py.Group):
-                inspect_hdf5_group(item, prefix=f"{prefix}{key}/")
-    print("Weights file top-level keys:", list(f.keys()))
-    inspect_hdf5_group(f)
+    with h5py.File(MODEL_WEIGHTS_PATH, "r") as f:
+        def inspect_hdf5_group(group, prefix=""):
+            for key in group.keys():
+                item = group[key]
+                if isinstance(item, h5py.Dataset):
+                    print(f"{prefix}{key}: Shape: {item.shape}")
+                elif isinstance(item, h5py.Group):
+                    inspect_hdf5_group(item, prefix=f"{prefix}{key}/")
+        print("Weights file top-level keys:", list(f.keys()))
+        inspect_hdf5_group(f)
 except Exception as e:
     print(f"Error inspecting weights file: {str(e)}")
-    f.close()
     exit(1)
 
 # Load the model weights
@@ -77,28 +78,73 @@ except Exception as e:
     # Attempt to load weights by layer name as a fallback
     try:
         print("Attempting to load weights by layer name...")
-        # Load embedding weights
-        embedding_weights = np.array(f['layers']['embedding']['vars']['0'])
-        print(f"Loaded embedding weights shape: {embedding_weights.shape}")
-        embedding_layer.set_weights([embedding_weights])
-        print("Manually set embedding weights.")
-        # Load dense layer weights
-        dense_weights = np.array(f['layers']['dense']['vars']['0'])
-        dense_bias = np.array(f['layers']['dense']['vars']['1'])
-        model.layers[2].set_weights([dense_weights, dense_bias])
-        print("Manually set dense layer weights.")
-        # Load dense_1 layer weights
-        dense_1_weights = np.array(f['layers']['dense_1']['vars']['0'])
-        dense_1_bias = np.array(f['layers']['dense_1']['vars']['1'])
-        model.layers[3].set_weights([dense_1_weights, dense_1_bias])
-        print("Manually set dense_1 layer weights.")
+        # Reload the weights file to avoid access issues
+        with h5py.File(MODEL_WEIGHTS_PATH, "r") as f:
+            # Load embedding weights
+            embedding_weights = np.array(f['layers']['embedding']['vars']['0'])
+            print(f"Loaded embedding weights shape: {embedding_weights.shape}")
+            embedding_layer.set_weights([embedding_weights])
+            print("Manually set embedding weights.")
+            # Load dense layer weights
+            dense_weights = np.array(f['layers']['dense']['vars']['0'])
+            dense_bias = np.array(f['layers']['dense']['vars']['1'])
+            model.layers[2].set_weights([dense_weights, dense_bias])
+            print("Manually set dense layer weights.")
+            # Load dense_1 layer weights
+            dense_1_weights = np.array(f['layers']['dense_1']['vars']['0'])
+            dense_1_bias = np.array(f['layers']['dense_1']['vars']['1'])
+            model.layers[3].set_weights([dense_1_weights, dense_1_bias])
+            print("Manually set dense_1 layer weights.")
     except Exception as e2:
         print(f"Error loading weights by layer name: {str(e2)}")
-        f.close()
-        exit(1)
-
-# Close the weights file
-f.close()
+        # As a last resort, try renaming the weights in the HDF5 file
+        try:
+            print("Attempting to rename weights in the HDF5 file...")
+            # Copy the original weights file to a new file
+            shutil.copy(MODEL_WEIGHTS_PATH, MODEL_WEIGHTS_RENAMED_PATH)
+            # Open the new file in read-write mode
+            with h5py.File(MODEL_WEIGHTS_RENAMED_PATH, "r+") as f_new:
+                # Create new groups with the expected Keras naming
+                if 'embedding' not in f_new:
+                    f_new.create_group('embedding')
+                if 'embeddings' not in f_new['embedding']:
+                    f_new['embedding'].create_group('embeddings')
+                # Copy the embedding weights to the new path
+                embedding_weights = np.array(f_new['layers']['embedding']['vars']['0'])
+                if 'embeddings:0' in f_new['embedding']['embeddings']:
+                    del f_new['embedding']['embeddings']['embeddings:0']
+                f_new['embedding']['embeddings']['embeddings:0'] = embedding_weights
+                print("Renamed embedding weights to 'embedding/embeddings:0'.")
+                # Create new groups for dense layer
+                if 'dense' not in f_new:
+                    f_new.create_group('dense')
+                dense_weights = np.array(f_new['layers']['dense']['vars']['0'])
+                dense_bias = np.array(f_new['layers']['dense']['vars']['1'])
+                if 'kernel:0' in f_new['dense']:
+                    del f_new['dense']['kernel:0']
+                if 'bias:0' in f_new['dense']:
+                    del f_new['dense']['bias:0']
+                f_new['dense']['kernel:0'] = dense_weights
+                f_new['dense']['bias:0'] = dense_bias
+                print("Renamed dense weights to 'dense/kernel:0' and 'dense/bias:0'.")
+                # Create new groups for dense_1 layer
+                if 'dense_1' not in f_new:
+                    f_new.create_group('dense_1')
+                dense_1_weights = np.array(f_new['layers']['dense_1']['vars']['0'])
+                dense_1_bias = np.array(f_new['layers']['dense_1']['vars']['1'])
+                if 'kernel:0' in f_new['dense_1']:
+                    del f_new['dense_1']['kernel:0']
+                if 'bias:0' in f_new['dense_1']:
+                    del f_new['dense_1']['bias:0']
+                f_new['dense_1']['kernel:0'] = dense_1_weights
+                f_new['dense_1']['bias:0'] = dense_1_bias
+                print("Renamed dense_1 weights to 'dense_1/kernel:0' and 'dense_1/bias:0'.")
+            # Attempt to load the renamed weights file
+            model.load_weights(MODEL_WEIGHTS_RENAMED_PATH)
+            print("Model weights loaded successfully from renamed file.")
+        except Exception as e3:
+            print(f"Error renaming and loading weights: {str(e3)}")
+            exit(1)
 
 # Load the tokenizer and label encoder
 try:
