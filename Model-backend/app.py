@@ -171,15 +171,20 @@ except Exception as e:
     print(f"Error loading model architecture: {str(e)}")
     exit(1)
 
-# Inspect the weights file
+# Inspect the weights file recursively
 print("Inspecting weights file...")
+def inspect_hdf5_group(group, prefix=""):
+    for key in group.keys():
+        item = group[key]
+        if isinstance(item, h5py.Dataset):
+            print(f"{prefix}{key}: Shape: {item.shape}")
+        elif isinstance(item, h5py.Group):
+            inspect_hdf5_group(item, prefix=f"{prefix}{key}/")
+
 try:
     with h5py.File(MODEL_WEIGHTS_PATH, "r") as f:
-        print("Weights file keys:", list(f.keys()))
-        for layer in f:
-            print(f"Layer: {layer}")
-            for weight in f[layer]:
-                print(f"  Weight: {weight}, Shape: {f[layer][weight].shape}")
+        print("Weights file top-level keys:", list(f.keys()))
+        inspect_hdf5_group(f)
 except Exception as e:
     print(f"Error inspecting weights file: {str(e)}")
     exit(1)
