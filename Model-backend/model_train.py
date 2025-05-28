@@ -8,23 +8,25 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Embedding, GlobalAveragePooling1D
 from tensorflow.keras.utils import to_categorical
 import pickle
+import h5py
 
 # Load data
-data = pd.read_csv("../train.txt", sep=';', header=None, names=['text', 'label'])
+data = pd.read_csv("train.txt", sep=';', header=None, names=['text', 'label'])
 
 # Prepare data
 texts = data['text'].values
 labels = data['label'].values
 
 # Tokenize the text
-MAX_WORDS = 50000  # Adjust based on your vocabulary size
-tokenizer = Tokenizer(num_words=MAX_WORDS)
+tokenizer = Tokenizer()
 tokenizer.fit_on_texts(texts)
 sequences = tokenizer.texts_to_sequences(texts)
 
 # Calculate max_length and pad sequences
 max_length = max([len(seq) for seq in sequences])
-print(f"Calculated max_length: {max_length}")  # Print max_length for app.py
+print(f"Calculated max_length: {max_length}")
+vocab_size = len(tokenizer.word_index) + 1
+print(f"Vocabulary size (input_dim): {vocab_size}")
 sequences = pad_sequences(sequences, maxlen=max_length)
 
 # Encode labels
@@ -38,11 +40,17 @@ X_train, X_test, y_train, y_test = train_test_split(sequences, categorical_label
 # Build the model
 embedding_dim = 128
 model = Sequential([
-    Embedding(MAX_WORDS + 1, embedding_dim, input_length=max_length),
+    Embedding(vocab_size, embedding_dim, input_length=max_length, name="embedding"),
     GlobalAveragePooling1D(),
     Dense(64, activation='relu'),
     Dense(len(label_encoder.classes_), activation='softmax')
 ])
+
+# Print model summary and weights shape
+model.summary()
+embedding_layer = model.layers[0]
+embedding_weights_shape = embedding_layer.get_weights()[0].shape if embedding_layer.get_weights() else "No weights yet"
+print(f"Embedding layer weights shape: {embedding_weights_shape}")
 
 # Compile the model
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
@@ -50,14 +58,35 @@ model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accur
 # Train the model
 model.fit(X_train, y_train, epochs=10, batch_size=32, validation_data=(X_test, y_test))
 
+# Print weights shape after training
+embedding_weights_shape = embedding_layer.get_weights()[0].shape
+print(f"Embedding layer weights shape after training: {embedding_weights_shape}")
+
 # Save the model architecture and weights
 model_json = model.to_json()
 with open("model_architecture.json", "w") as json_file:
     json_file.write(model_json)
+
+# Save weights with a specific name to avoid naming issues
 model.save_weights("model_weights.weights.h5")
+
+# Inspect the saved weights file to confirm structure
+print("Inspecting saved weights file...")
+with h5py.File("model_weights.weights.h5", "r") as f:
+    def inspect_hdf5_group(group, prefix=""):
+        for key in group.keys():
+            item = group[key]
+            if isinstance(item, h5py.Dataset):
+                print(f"{prefix}{key}: Shape: {item.shape}")
+            elif isinstance(item, h5py.Group):
+                inspect_hdf5_group(item, prefix=f"{prefix}{key}/")
+    print("Weights file top-level keys:", list(f.keys()))
+    inspect_hdf5_group(f)
 
 # Save the tokenizer and label encoder
 with open("tokenizer.pkl", "wb") as file:
     pickle.dump(tokenizer, file)
 with open("label_encoder.pkl", "wb") as file:
     pickle.dump(label_encoder, file)
+
+print("Model training completed and files saved.")

@@ -187,7 +187,7 @@ try:
         inspect_hdf5_group(f)
 except Exception as e:
     print(f"Error inspecting weights file: {str(e)}")
-    exit(1)
+    # Continue to attempt loading weights even if inspection fails
 
 # Load the model weights
 try:
@@ -195,11 +195,31 @@ try:
     print("Model weights loaded successfully.")
 except Exception as e:
     print(f"Error loading model weights: {str(e)}")
-    exit(1)
+    # Attempt to load weights by layer name as a fallback
+    try:
+        print("Attempting to load weights by layer name...")
+        with h5py.File(MODEL_WEIGHTS_PATH, "r") as f:
+            # Load embedding weights manually
+            embedding_weights = np.array(f['layers/embedding/vars/0'])
+            print(f"Loaded embedding weights shape: {embedding_weights.shape}")
+            embedding_layer.set_weights([embedding_weights])
+            print("Manually set embedding weights.")
+            # Load other layers manually if needed
+            dense_weights = np.array(f['layers/dense/vars/0'])
+            dense_bias = np.array(f['layers/dense/vars/1'])
+            model.layers[2].set_weights([dense_weights, dense_bias])
+            print("Manually set dense layer weights.")
+            dense_1_weights = np.array(f['layers/dense_1/vars/0'])
+            dense_1_bias = np.array(f['layers/dense_1/vars/1'])
+            model.layers[3].set_weights([dense_1_weights, dense_1_bias])
+            print("Manually set dense_1 layer weights.")
+    except Exception as e2:
+        print(f"Error loading weights by layer name: {str(e2)}")
+        exit(1)
 
 # Load the tokenizer and label encoder
 try:
-    with open(TOKENIZER_PATH, "rb") as file:
+    with open(TOKENIZER_PATH, "r") as file:
         tokenizer = pickle.load(file)
     print("Tokenizer loaded successfully.")
     with open(LABEL_ENCODER_PATH, "rb") as file:
