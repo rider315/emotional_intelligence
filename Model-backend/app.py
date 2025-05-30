@@ -104,4 +104,28 @@ def predict():
 
         input_text = data["userInput"].strip()
         if not input_text:
-            return jsonify
+            return jsonify({"success": False, "error": "Input is empty"}), 400
+
+        # Detect emotion
+        detected_emotion = predict_emotion(input_text)
+        # Get advice
+        advice_response = get_advice(detected_emotion)
+
+        return jsonify({
+            "success": True,
+            "detectedEmotion": detected_emotion,
+            "adviceResponse": advice_response
+        })
+    except Exception as e:
+        print("Error in /predict endpoint:")
+        print(traceback.format_exc())
+        return jsonify({"success": False, "error": str(e)}), 500
+
+if __name__ == "__main__":
+    try:
+        port = int(os.getenv("PORT", 3000))
+        print(f"Starting Flask server on port {port}...")
+        app.run(host="0.0.0.0", port=port)
+    except Exception as e:
+        print(f"Error starting Flask server: {str(e)}")
+        exit(1)
