@@ -8,7 +8,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Embedding, GlobalAveragePooling1D
 from tensorflow.keras.utils import to_categorical
 import pickle
-import h5py
+import tensorflow as tf
 
 # Load data
 data = pd.read_csv("train.txt", sep=';', header=None, names=['text', 'label'])
@@ -41,16 +41,13 @@ X_train, X_test, y_train, y_test = train_test_split(sequences, categorical_label
 embedding_dim = 128
 model = Sequential([
     Embedding(vocab_size, embedding_dim, input_length=max_length, name="embedding"),
-    GlobalAveragePooling1D(),
-    Dense(64, activation='relu'),
-    Dense(len(label_encoder.classes_), activation='softmax')
+    GlobalAveragePooling1D(name="global_average_pooling1d"),
+    Dense(64, activation='relu', name="dense"),
+    Dense(len(label_encoder.classes_), activation='softmax', name="dense_1")
 ])
 
-# Print model summary and weights shape
+# Print model summary
 model.summary()
-embedding_layer = model.layers[0]
-embedding_weights_shape = embedding_layer.get_weights()[0].shape if embedding_layer.get_weights() else "No weights yet"
-print(f"Embedding layer weights shape: {embedding_weights_shape}")
 
 # Compile the model
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
@@ -58,30 +55,10 @@ model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accur
 # Train the model
 model.fit(X_train, y_train, epochs=10, batch_size=32, validation_data=(X_test, y_test))
 
-# Print weights shape after training
-embedding_weights_shape = embedding_layer.get_weights()[0].shape
-print(f"Embedding layer weights shape after training: {embedding_weights_shape}")
-
-# Save the model architecture and weights
-model_json = model.to_json()
-with open("model_architecture.json", "w") as json_file:
-    json_file.write(model_json)
-
-# Save weights with a specific name to avoid naming issues
-model.save_weights("model_weights.weights.h5")
-
-# Inspect the saved weights file to confirm structure
-print("Inspecting saved weights file...")
-with h5py.File("model_weights.weights.h5", "r") as f:
-    def inspect_hdf5_group(group, prefix=""):
-        for key in group.keys():
-            item = group[key]
-            if isinstance(item, h5py.Dataset):
-                print(f"{prefix}{key}: Shape: {item.shape}")
-            elif isinstance(item, h5py.Group):
-                inspect_hdf5_group(item, prefix=f"{prefix}{key}/")
-    print("Weights file top-level keys:", list(f.keys()))
-    inspect_hdf5_group(f)
+# Save the model in TensorFlow SavedModel format
+model_save_path = "saved_model"
+tf.saved_model.save(model, model_save_path)
+print(f"Model saved in SavedModel format at: {model_save_path}")
 
 # Save the tokenizer and label encoder
 with open("tokenizer.pkl", "wb") as file:
